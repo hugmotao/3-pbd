@@ -1,0 +1,37 @@
+Hugo de Souza Mota
+
+A seguir, demonstro como realizar o cadastro completo de um fluxo no minimundo com apenas um insert em cada tabela, respeitando as dependências de chaves estrangeiras. O objetivo é ilustrar o funcionamento do sistema com um exemplo prático de inserção de dados.
+
+
+-- 1. Inserir um cliente
+INSERT INTO clientes (nome_completo, email, telefone, senha_hash) VALUES ('Maria Silva', 'maria@email.com', '11999999999', 'hashsenha123');
+
+-- 2. Inserir um centro de serviço
+INSERT INTO centros_servico (nome, descricao) VALUES ('Salão Estética Bela', 'Centro especializado em beleza e estética');
+
+-- 3. Inserir um serviço oferecido
+INSERT INTO servicos (centro_id, nome, descricao, duracao_minutos, preco) VALUES (1, 'Corte de Cabelo', 'Corte feminino', 45, 80.00);
+
+-- 4. Inserir um profissional
+INSERT INTO profissionais (nome_completo, email_corporativo, telefone, data_contratacao) VALUES ('João Souza', 'joao@bela.com', '11888888888', '2024-01-10');
+
+-- 5. Relacionar o profissional ao serviço (especialidade)
+INSERT INTO especialidades_profissional (profissional_id, servico_id) VALUES (1, 1);
+
+-- 6. Definir o horário de trabalho do profissional
+INSERT INTO horarios_trabalho_profissional (profissional_id, dia_semana, hora_inicio, hora_fim) VALUES (1, 2, '09:00:00', '18:00:00');
+
+-- 7. Realizar um agendamento
+INSERT INTO agendamentos (cliente_id, servico_id, profissional_id, data_hora_inicio, data_hora_fim, status_agendamento, valor_cobrado) VALUES (1, 1, 1, '2025-06-01 10:00:00', '2025-06-01 10:45:00', 'Agendado', 80.00);
+
+-- 8. Registrar o pagamento do agendamento
+INSERT INTO pagamentos (agendamento_id, valor_pago, status_pagamento, id_transacao_gateway) VALUES (1, 80.00, 'Processado', 'TRX123456');
+
+-- 9. Criar um pacote de serviço
+INSERT INTO pacotes_servico (nome, descricao, preco_pacote) VALUES ('Pacote Beleza', 'Corte + Escova', 150.00);
+
+-- 10. Relacionar serviço ao pacote
+INSERT INTO servicos_do_pacote (pacote_id, servico_id) VALUES (1, 1);
+
+-- 11. Inserir cliente na fila de espera
+INSERT INTO fila_espera (cliente_id, servico_desejado_id, profissional_desejado_id) VALUES (1, 1, 1);

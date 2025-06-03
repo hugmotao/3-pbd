@@ -1,0 +1,196 @@
+Faeterj Terceiro Período
+Hugo de Souza Mota
+3pbd
+
+Por conta das dificuldades na criação de diagramas em imagens, me limitarei a demonstrar textualmente as ideias a si implementar.
+
+Estrutura do Banco de Dados MySQL
+
+ `INT` para IDs com `AUTO_INCREMENT`, `VARCHAR` para textos curtos, `TEXT` para textos longos, `DATE` ou `DATETIME` para datas e `DECIMAL` para valores financeiros.
+
+*1. Tabelas Principais:*
+
+* *PACIENTES*
+    * `id_paciente` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome` VARCHAR(100) NOT NULL
+    * `sobrenome` VARCHAR(150) NOT NULL
+    * `data_nascimento` DATE
+    * `endereco` VARCHAR(255)
+    * `cidade` VARCHAR(100)
+    * `estado` VARCHAR(2) // Sigla UF
+    * `cep` VARCHAR(9) // Formato 00000-000
+    * `telefone` VARCHAR(20)
+    * `email` VARCHAR(255) UNIQUE
+    * `num_apolice_seguro` VARCHAR(100)
+    * `id_seguradora` INT NOT NULL // Chave estrangeira para SEGURADORAS
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *MEDICOS*
+    * `id_medico` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome` VARCHAR(100) NOT NULL
+    * `sobrenome` VARCHAR(150) NOT NULL
+    * `especialidade` VARCHAR(150)
+    * `crm` VARCHAR(20) UNIQUE // Conselho Regional de Medicina
+    * `telefone` VARCHAR(20)
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *HOSPITAIS* (Ou Clínicas)
+    * `id_hospital` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome_hospital` VARCHAR(200) NOT NULL
+    * `endereco` VARCHAR(255)
+    * `cidade` VARCHAR(100)
+    * `estado` VARCHAR(2)
+    * `cep` VARCHAR(9)
+    * `telefone` VARCHAR(20)
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *SEGURADORAS*
+    * `id_seguradora` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome_seguradora` VARCHAR(200) NOT NULL
+    * `telefone_contato` VARCHAR(20)
+    * `cnpj` VARCHAR(18) UNIQUE // CNPJ da seguradora
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *MEDICAMENTOS*
+    * `id_medicamento` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome_comercial` VARCHAR(150) NOT NULL
+    * `nome_generico` VARCHAR(150)
+    * `descricao` TEXT // Informações gerais (uso, etc.)
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *VISITAS* (Representa Consultas e Pedidos de Exames)
+    * `id_visita` INT AUTO_INCREMENT PRIMARY KEY
+    * `id_paciente` INT NOT NULL // Chave estrangeira para PACIENTES
+    * `id_medico` INT NOT NULL // Chave estrangeira para MEDICOS (quem atendeu/solicitou)
+    * `id_hospital` INT // Chave estrangeira para HOSPITAIS (onde ocorreu, opcional)
+    * `data_visita` DATETIME NOT NULL
+    * `tipo_visita` ENUM('CONSULTA', 'EXAME_SOLICITADO') NOT NULL // Para diferenciar
+    * `motivo` TEXT // Motivo da consulta ou solicitação de exame
+    * `diagnostico_suspeita` TEXT
+    * `observacoes` TEXT
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *TIPOS_EXAME* (Tabela de apoio para os nomes dos exames)
+    * `id_tipo_exame` INT AUTO_INCREMENT PRIMARY KEY
+    * `nome_exame` VARCHAR(150) NOT NULL UNIQUE
+    * `descricao` TEXT
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *EXAMES_REALIZADOS* (Detalhes sobre exames feitos)
+    * `id_exame` INT AUTO_INCREMENT PRIMARY KEY
+    * `id_visita_solicitacao` INT NOT NULL // Liga com a VISITA que solicitou
+    * `id_tipo_exame` INT NOT NULL // Chave estrangeira para TIPOS_EXAME
+    * `id_medico_executante` INT // Chave estrangeira para MEDICOS (quem realizou/laudou, opcional)
+    * `id_hospital_executante` INT // Chave estrangeira para HOSPITAIS (onde foi feito, opcional)
+    * `data_realizacao` DATE
+    * `laudo_medico` TEXT // O texto do laudo
+    * `arquivo_resultado` BLOB // Para guardar o arquivo (PDF, imagem) - usar com cautela, pode deixar a DB grande
+    * `nome_arquivo` VARCHAR(255) // Nome original do arquivo
+    * `tipo_arquivo` VARCHAR(100) // Ex: 'application/pdf'
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *PRESCRICOES* (Medicamentos receitados numa consulta)
+    * `id_prescricao` INT AUTO_INCREMENT PRIMARY KEY
+    * `id_visita` INT NOT NULL // Chave estrangeira para VISITAS (só se tipo_visita='CONSULTA')
+    * `id_medicamento` INT NOT NULL // Chave estrangeira para MEDICAMENTOS
+    * `dosagem` VARCHAR(100) // Ex: "1 comprimido", "10 gotas"
+    * `frequencia` VARCHAR(100) // Ex: "2x ao dia", "a cada 8 horas"
+    * `duracao` VARCHAR(100) // Ex: "por 7 dias", "uso contínuo"
+    * `data_prescricao` DATE NOT NULL
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+* *SINISTROS* (Pedidos de reembolso/cobrança à seguradora)
+    * `id_sinistro` INT AUTO_INCREMENT PRIMARY KEY
+    * `id_visita_ou_exame` INT NOT NULL // Pode referenciar VISITAS ou EXAMES_REALIZADOS (precisa lógica na aplicação) -> *Simplificação:* Vamos ligar só à VISITA por enquanto.
+    * `id_visita` INT NOT NULL // Chave estrangeira para VISITAS
+    * `id_paciente` INT NOT NULL // Redundante (já tem na visita), mas útil para buscar sinistros do paciente
+    * `id_seguradora` INT NOT NULL // Redundante, mas útil
+    * `data_submissao` DATE NOT NULL
+    * `valor_submetido` DECIMAL(10, 2) NOT NULL // Ex: 99999999.99
+    * `valor_aprovado` DECIMAL(10, 2)
+    * `status_sinistro` ENUM('SUBMETIDO', 'EM_ANALISE', 'APROVADO', 'REJEITADO', 'PAGO') NOT NULL
+    * `motivo_rejeicao` TEXT
+    * `data_processamento` DATE
+    * `data_pagamento` DATE
+    * `data_cadastro` DATETIME DEFAULT CURRENT_TIMESTAMP
+
+*2. Relacionamentos (Chaves Estrangeiras):*
+
+* `PACIENTES.id_seguradora` -> `SEGURADORAS.id_seguradora`
+* `VISITAS.id_paciente` -> `PACIENTES.id_paciente`
+* `VISITAS.id_medico` -> `MEDICOS.id_medico`
+* `VISITAS.id_hospital` -> `HOSPITAIS.id_hospital` (Permitir NULO)
+* `EXAMES_REALIZADOS.id_visita_solicitacao` -> `VISITAS.id_visita`
+* `EXAMES_REALIZADOS.id_tipo_exame` -> `TIPOS_EXAME.id_tipo_exame`
+* `EXAMES_REALIZADOS.id_medico_executante` -> `MEDICOS.id_medico` (Permitir NULO)
+* `EXAMES_REALIZADOS.id_hospital_executante` -> `HOSPITAIS.id_hospital` (Permitir NULO)
+* `PRESCRICOES.id_visita` -> `VISITAS.id_visita`
+* `PRESCRICOES.id_medicamento` -> `MEDICAMENTOS.id_medicamento`
+* `SINISTROS.id_visita` -> `VISITAS.id_visita`
+* `SINISTROS.id_paciente` -> `PACIENTES.id_paciente` (Para facilitar buscas)
+* `SINISTROS.id_seguradora` -> `SEGURADORAS.id_seguradora` (Para facilitar buscas)
+
+*3. Índices:*
+
+* Além das chaves primárias (PK), é bom criar índices nas colunas de chave estrangeira (FK) para acelerar as buscas que juntam tabelas (JOINs).
+* Criar índices em colunas usadas frequentemente em buscas (WHERE):
+    * `PACIENTES.email` (já é UNIQUE)
+    * `PACIENTES.nome`, `PACIENTES.sobrenome`
+    * `MEDICOS.crm` (já é UNIQUE)
+    * `MEDICOS.nome`, `MEDICOS.sobrenome`
+    * `VISITAS.data_visita`
+    * `SINISTROS.status_sinistro`, `SINISTROS.data_submissao`
+
+*4. Cardinalidade dos Relacionamentos:*
+
+* *Paciente e Seguradora:*
+    * Um `PACIENTE` está ligado a `(1)` `SEGURADORA`.
+    * Uma `SEGURADORA` pode ter `(N)` `PACIENTES`.
+
+* *Paciente e Visita:*
+    * Um `PACIENTE` pode ter `(N)` `VISITAS`.
+    * Uma `VISITA` pertence a `(1)` `PACIENTE`.
+
+* *Médico e Visita:*
+    * Um `MEDICO` pode realizar/solicitar `(N)` `VISITAS`.
+    * Uma `VISITA` é realizada/solicitada por `(1)` `MEDICO`.
+
+* *Hospital e Visita:*
+    * Um `HOSPITAL` pode sediar `(N)` `VISITAS`.
+    * Uma `VISITA` pode ocorrer em `(0..1)` `HOSPITAL` (zero ou um, pois é opcional).
+
+* *Visita e Exame Realizado:*
+    * Uma `VISITA` (do tipo 'EXAME_SOLICITADO') pode resultar em `(N)` `EXAMES_REALIZADOS` (assumindo que uma solicitação pode gerar múltiplos registros de exames feitos separadamente).
+    * Um `EXAME_REALIZADO` está ligado a `(1)` `VISITA` (a que o solicitou).
+
+* *Tipo de Exame e Exame Realizado:*
+    * Um `TIPO_EXAME` pode ser referenciado em `(N)` `EXAMES_REALIZADOS`.
+    * Um `EXAME_REALIZADO` é de `(1)` `TIPO_EXAME`.
+
+* *Médico e Exame Realizado (Executante):*
+    * Um `MEDICO` pode executar/laudar `(N)` `EXAMES_REALIZADOS`.
+    * Um `EXAME_REALIZADO` pode ter `(0..1)` `MEDICO` executante (opcional).
+
+* *Hospital e Exame Realizado (Local):*
+    * Um `HOSPITAL` pode ser o local de `(N)` `EXAMES_REALIZADOS`.
+    * Um `EXAME_REALIZADO` pode ter `(0..1)` `HOSPITAL` como local (opcional).
+
+* *Visita e Prescrição:*
+    * Uma `VISITA` (do tipo 'CONSULTA') pode gerar `(N)` `PRESCRICOES`.
+    * Uma `PRESCRICAO` pertence a `(1)` `VISITA`.
+
+* *Medicamento e Prescrição:*
+    * Um `MEDICAMENTO` pode estar em `(N)` `PRESCRICOES`.
+    * Uma `PRESCRICAO` contém `(1)` `MEDICAMENTO`.
+
+* *Visita e Sinistro:*
+    * Uma `VISITA` pode estar associada a `(N)` `SINISTROS`.
+    * Um `SINISTRO` está ligado a `(1)` `VISITA`.
+
+* *Paciente e Sinistro (Ligação direta/facilitadora):*
+    * Um `PACIENTE` pode ter `(N)` `SINISTROS`.
+    * Um `SINISTRO` pertence a `(1)` `PACIENTE`.
+
+* *Seguradora e Sinistro (Ligação direta/facilitadora):*
+    * Uma `SEGURADORA` pode processar `(N)` `SINISTROS`.
+    * Um `SINISTRO` é direcionado a `(1)` `SEGURADORA`.
