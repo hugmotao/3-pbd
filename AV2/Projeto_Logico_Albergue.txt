@@ -1,0 +1,70 @@
+# Projeto Lógico - Minimundo Albergue
+
+## Entidades Principais
+
+1. **Cliente**
+   - cliente_id (PK)
+   - nome
+   - email
+   - telefone
+   - documento (opcional)
+
+2. **Quarto**
+   - quarto_id (PK)
+   - numero
+   - capacidade
+   - banheiro (S/N)
+   - observacoes
+
+3. **Vaga**
+   - vaga_id (PK)
+   - quarto_id (FK)
+   - observacoes
+
+4. **CaracteristicasVaga**
+   - caracteristica_id (PK)
+   - tipo_cama (beliche/solteiro)
+   - posicao_cama (superior/inferior/unica)
+   - perto_porta (S/N)
+   - perto_janela (S/N)
+   - sol_manha (S/N)
+
+5. **VagaCaracteristica** (relacionamento N:N entre Vaga e CaracteristicasVaga)
+   - vaga_id (FK)
+   - caracteristica_id (FK)
+   - PRIMARY KEY (vaga_id, caracteristica_id)
+
+6. **Reserva**
+   - reserva_id (PK)
+   - cliente_id (FK)
+   - data_inicio
+   - data_fim
+   - data_reserva
+   - status (ativa/cancelada/concluida)
+   - valor_total
+
+7. **ReservaVaga** (relacionamento N:N entre Reserva e Vaga)
+   - reserva_id (FK)
+   - vaga_id (FK)
+   - PRIMARY KEY (reserva_id, vaga_id)
+
+8. **Pagamento**
+   - pagamento_id (PK)
+   - reserva_id (FK)
+   - valor_pago
+   - data_pagamento
+   - status_pagamento (processado/cancelado)
+   - cartao_final
+
+## Relacionamentos
+- Um cliente pode ter várias reservas.
+- Um quarto possui várias vagas.
+- Uma vaga pode ter uma ou mais características (e cada característica pode ser compartilhada por várias vagas).
+- Uma reserva pode reservar uma ou mais vagas.
+- Cada vaga pode ser reservada em diferentes períodos.
+- Cada reserva tem um pagamento associado.
+
+## Observações
+- As diárias começam e terminam ao meio-dia.
+- Cancelamentos só podem ser feitos até 3 dias antes do início.
+- O sistema deve permitir consultar vagas disponíveis em um período e detalhar características de cada vaga.
